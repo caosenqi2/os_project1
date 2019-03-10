@@ -20,11 +20,22 @@ int show_prompt(char *buff, int size)
   return 1;
 }
 
+int pip = 0;
+void pipe_handle(char * s, int size){
+    int z = 0;
+    for(int i=0;i<size;i++){
+	        if (s[i] != '|') z++;
+		else break;
+	}
+    if(size == z) pip = 0;
+    else pip = 1;
+}
+
 char * r[2];
 char ** my_strtok(char * s, int size){
 	int z=0;
 	for(int i=0;i<size;i++){
-		if (s[i] != ' ' && s[i] !='\n')	z++;
+	        if (s[i] != ' ' && s[i] !='\n')	z++;
 		else break;
 	}
 	char r1[z];
@@ -51,7 +62,7 @@ char ** my_strtok(char * s, int size){
                 if(r1[0] == 'R' && r1[1] == 'E' && r1[2] == 'A' && r1[3] == 'D' && r1[4] == 'M' && r1[5] == 'E' && r1[6] == 0) ind++;
                 if(r1[0] == 'l' && r1[1] == 's' && r1[2] == 0) ind++;
 		if(r1[0] == 'l' && r1[1] == 'n' && r1[2] == 0) ind++;
-		if(r1[0] == 'l' && r1[1] == 'n' && r1[2] == 0) ind++;
+		if(r1[0] == 'w' && r1[1] == 'c' && r1[2] == 0) ind++;
 		if(r1[0] == 'r' && r1[1] == 'm' && r1[2] == 0) ind++;
                 if(r1[0] == 's' && r1[1] == 'h' && r1[2] == 0) ind++;
                 if(r1[0] == 'c' && r1[1] == 'a' && r1[2] == 't' && r1[3]== 0) ind++;
@@ -71,7 +82,76 @@ char ** my_strtok(char * s, int size){
 	r[1]=r2;
 	return r;
 }
-int num_zombies = 0;
+
+int exec_pipe(char * s, int size){
+        int z = 0;
+        for(int i=0;i<size;i++){
+	        if (s[i] != '|') z++;
+		else break;
+	  }
+
+        char cmd1[z];
+        char cmd2[size-z-2];
+	for(int i=0;i<size;i++){
+		if (s[i] == '|'){
+		    strncpy(cmd1, s, i);
+		    cmd1[i-1]='\n';
+		    cmd1[i] = 0;
+		    printf(2,"length of cmd1:%d\n",strlen(cmd1));
+		    strncpy(cmd2, s+i+2, size-z-2);
+		    cmd2[size-z-3]='\n';
+		    cmd2[size-z-2]=0;
+                    printf(2,"length of cmd2:%d\n",strlen(cmd2));
+		}
+	}
+	printf(2,"The first command is %s\n",cmd1);
+        printf(2,"The second command is %s\n",cmd2);
+
+	int fds[2];
+	int pid1, pid2;
+	pipe(fds);
+	
+	pid2 = fork();
+//      if (pid2>0) wait();
+	if ( pid2 == 0 ) {
+		close(1); /* close normal stdin (fd = 0)*/
+		dup(fds[1]); /* make stdin same as fds[0] */
+        	close(fds[1]);
+        	close(fds[0]); /* we don't need the write end -- fds[1]*/
+
+                int size2 = strlen(cmd2);
+                char ** token2 = my_strtok(cmd2,size2);
+	        char *args2[]={token2[0],token2[1]};
+                exec(args2[0],args2);
+//		exit();
+	
+	}
+
+        pid1 = fork();
+//       if (pid1 > 0) wait();
+	if ( pid1 == 0 ) {sleep(100);
+		close(0); /* close normal stdout (fd = 1) */
+		dup(fds[0]); /* make stdout same as fds[1] */
+		close(fds[1]); /* we don't need the read end -- fds[0] */
+        	close(fds[0]);
+
+		int size1 = strlen(cmd1);
+                char ** token1 = my_strtok(cmd1,size1);
+	        char *args1[]={token1[0],token1[1]};
+                exec(args1[0],args1);
+//		exit();
+
+	} 
+        close(fds[1]); 
+	close(fds[0]);
+	
+	for(int i=0; i<2; i++) {
+		 wait();
+			}
+        return 1;
+}
+
+int num_zombies = 0; 
 int main(void){
   static char buff[100]; 
   while(1){
@@ -90,22 +170,32 @@ int main(void){
 	    strncpy(buff1,buff,size-1);
 	    buff1[size-2] = '\n';
 
-	    char ** token = my_strtok(buff1,size-1);
-	    char *args[]={token[0],token[1]};
-            exec(args[0],args);
-	    exit();	 
+            pipe_handle(buff1,size-1);
+            if (pip == 1) exec_pipe(buff1,size-1);
+	    else {
+               char ** token = my_strtok(buff1,size-1);
+	       char *args[]={token[0],token[1]};
+	       exec(args[0],args);
+	    }
+	    exit();
 	  }
    }
    else{
 	int pid = fork(); num_zombies++; 
 	if (pid > 0) sleep(8); // short sleep to always show the prompt first
         if(pid == 0){
-	    int size = strlen(buff);
-	    char ** token = my_strtok(buff,size);
-	    char *args[]={token[0],token[1]};
-            exec(args[0],args);
-	    exit();
-	} 
+	   int size = strlen(buff);
+	   pipe_handle(buff,size);
+
+	   
+	   if (pip == 1) exec_pipe(buff,size);
+	   else {
+               char ** token = my_strtok(buff,size);
+	       char *args[]={token[0],token[1]};
+	       exec(args[0],args);
+	   }
+	   exit();
+	}
        wait();
    }
 }
