@@ -23,6 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+void shutdown(void);
 
 // ulib.c
 int stat(char*, struct stat*);
@@ -39,3 +40,5 @@ void free(void*);
 int atoi(const char*);
 
 void enable_sched_trace(int enable);
+char*
+strncpy(char *s, const char *t, int n);

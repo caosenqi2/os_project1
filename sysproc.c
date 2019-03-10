@@ -100,3 +100,8 @@ int sys_enable_sched_trace(void)
 
   return 0;
 }
+
+void 
+sys_shutdown(void){
+  return shutdown();
+}
