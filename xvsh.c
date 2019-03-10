@@ -97,11 +97,11 @@ int exec_pipe(char * s, int size){
 		    strncpy(cmd1, s, i);
 		    cmd1[i-1]='\n';
 		    cmd1[i] = 0;
-		    printf(2,"length of cmd1:%d\n",strlen(cmd1));
+		   // printf(2,"length of the first command:%d\n",strlen(cmd1));
 		    strncpy(cmd2, s+i+2, size-z-2);
 		    cmd2[size-z-3]='\n';
 		    cmd2[size-z-2]=0;
-                    printf(2,"length of cmd2:%d\n",strlen(cmd2));
+                   // printf(2,"length of the second command:%d\n",strlen(cmd2));
 		}
 	}
 	printf(2,"The first command is %s\n",cmd1);
@@ -116,7 +116,7 @@ int exec_pipe(char * s, int size){
 	if ( pid2 == 0 ) {
 		close(1); /* close normal stdin (fd = 0)*/
 		dup(fds[1]); /* make stdin same as fds[0] */
-        	close(fds[1]);
+//        	close(fds[1]);
         	close(fds[0]); /* we don't need the write end -- fds[1]*/
 
                 int size2 = strlen(cmd2);
@@ -129,11 +129,11 @@ int exec_pipe(char * s, int size){
 
         pid1 = fork();
 //       if (pid1 > 0) wait();
-	if ( pid1 == 0 ) {sleep(100);
+	if ( pid1 == 0 ) {
 		close(0); /* close normal stdout (fd = 1) */
 		dup(fds[0]); /* make stdout same as fds[1] */
 		close(fds[1]); /* we don't need the read end -- fds[0] */
-        	close(fds[0]);
+//        	close(fds[0]);
 
 		int size1 = strlen(cmd1);
                 char ** token1 = my_strtok(cmd1,size1);
@@ -186,8 +186,6 @@ int main(void){
         if(pid == 0){
 	   int size = strlen(buff);
 	   pipe_handle(buff,size);
-
-	   
 	   if (pip == 1) exec_pipe(buff,size);
 	   else {
                char ** token = my_strtok(buff,size);
